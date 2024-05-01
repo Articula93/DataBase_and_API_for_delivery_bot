@@ -1,0 +1,317 @@
+<h4>Авторизация пользователя</h4>
+<div>
+  <input class="input" name="login" id="login" type="text" placeholder="Ваш логин">
+</div>
+<div>
+  <input class="input" name="password" id="password" type="password" placeholder="Ваш пароль">
+</div>
+<div>
+  <button type="button" id="btn_token">получить токен</button>
+</div>
+
+<h4>Список заказов<h4>
+    <div>
+      <input type="hidden" value="0" name="offset" id="offset">
+      <button type="button" id="btn_back">назад</button>
+      <button type="button" id="btn_forward">вперед</button>
+      <input type="text" id="page_number" value="1">
+      <button type="button" id="btn_page">показать страницу</button>
+    </div>
+
+    <script>
+      var itemPerPage = 10;
+      var btn_forward = document.querySelector("#btn_forward");
+      btn_forward.onclick = get_list_order_forward;
+      var btn_back = document.querySelector("#btn_back");
+      btn_back.onclick = get_list_order_back;
+      var btn_page = document.querySelector("#btn_page");
+      btn_page.onclick = search_page_number;
+      var btn_token = document.querySelector("#btn_token")
+      btn_token.onclick = autorisation;
+
+      function show_select_status(event) {
+        let target = event.target;
+        let select = document.createElement("select");
+        target.appendChild(select);
+        get_list_status(select);
+        target.removeEventListener("click", show_select_status);
+        select.addEventListener("change", select_replacment_status);
+      }
+
+      // function show_select_replacment_status(event) {
+      //   let target = event.target;
+      //   let select = document.createElement("select");
+      //   target.appendChild(select);
+      //   select.addEventListener("change", select_replacment_status);
+      // }
+      document.addEventListener("DOMContentLoaded", check_token);
+
+      let table = document.createElement('table');
+      let row = table.insertRow(); // добавим строку
+
+
+      let cell1 = row.insertCell(); // добавим ячейки
+      let cell2 = row.insertCell();
+      let cell3 = row.insertCell();
+      let cell4 = row.insertCell();
+      let cell5 = row.insertCell();
+      let cell6 = row.insertCell();
+      let cell7 = row.insertCell();
+      let cell8 = row.insertCell();
+      let cell9 = row.insertCell();
+      let cell10 = row.insertCell();
+      let cell11 = row.insertCell();
+      let cell12 = row.insertCell();
+      let cell13 = row.insertCell();
+      let cell14 = row.insertCell();
+
+      cell1.innerHTML = 'Номер заказа:'; // вставим текст
+      cell2.innerHTML = 'Адрес:';
+      cell3.innerHTML = 'Количество персон:';
+      cell4.innerHTML = 'Время доставки:';
+      cell5.innerHTML = 'Доставка приборов:';
+      cell6.innerHTML = 'Способ оплаты:';
+      cell7.innerHTML = 'Номер телефона:';
+      cell8.innerHTML = 'Промокод:';
+      cell9.innerHTML = 'Пожелания к заказу:';
+      cell10.innerHTML = 'Цена:';
+      cell11.innerHTML = 'id пользователя:';
+      cell12.innerHTML = 'Время заказа:';
+      cell13.innerHTML = 'Список блюд';
+      cell14.innerHTML = 'Статус заказа';
+
+      function row_and_col(){
+        response.order_list.forEach(function (item_order) {
+              var row = table.insertRow();
+              let cell1 = row.insertCell(); 
+              let cell2 = row.insertCell();
+              let cell3 = row.insertCell();
+              let cell4 = row.insertCell();
+              let cell5 = row.insertCell();
+              let cell6 = row.insertCell();
+              let cell7 = row.insertCell();
+              let cell8 = row.insertCell();
+              let cell9 = row.insertCell();
+              let cell10 = row.insertCell();
+              let cell11 = row.insertCell();
+              let cell12 = row.insertCell();
+              let cell13 = row.insertCell();
+              let cell14 = row.insertCell();
+
+              cell1.innerHTML = item_order.id_order;
+              cell2.innerHTML = item_order.address;
+              cell3.innerHTML = item_order.quantity_person;
+              cell4.innerHTML = item_order.delivery_time;
+              cell5.innerHTML = item_order.cutlery == true ? ("да") : ("нет");
+              cell6.innerHTML = item_order.payment.method_name;
+              cell7.innerHTML = item_order.number_phone;
+              cell8.innerHTML = item_order.promocode;
+              cell9.innerHTML = item_order.wishes;
+              cell10.innerHTML = item_order.price;
+              cell11.innerHTML = item_order.id_user;
+              cell12.innerHTML = item_order.order_time;
+              var list_dish = item_order.dish_list.map(function (dish) {
+                return dish.name_dish;
+              });
+              cell13.innerHTML = list_dish.join();
+              cell14.innerHTML = item_order.last_status.status_name;
+              cell14.addEventListener("click", show_select_status);
+              row.setAttribute("data-id-order", item_order.id_order)
+
+            });
+          return false;
+      }
+
+      function autorisation(event) {
+        let login = document.querySelector("#login");
+        let password = document.querySelector("#password");
+        if (login.value == "" || password.value == "") {
+          alert("Все поля должны быть заполнены!");
+        }
+        let request_body = {
+          "login": login.value,
+          "password": password.value,
+        };
+        fetch("/checking_user", {
+          method: 'POST',
+          body: JSON.stringify(request_body),
+          headers: {
+            'Content-type': 'application/json; charset=UTF-8',
+          },
+        })
+          .then((response) => response.json())
+          .then((response) => {
+            if (!response.success) {
+              alert(response.error);
+              return;
+            }
+            else {
+              login.value = "";
+              password.value = "";
+              alert("Вы успешно авторизировались");
+            }
+            localStorage.setItem('token', response.token);
+          });
+        return false;
+      }
+
+      function get_list_order(action, limit = 10) {
+        let input = document.querySelector("#offset");
+        offset = input.value
+
+        for (var i = 1; i < table.rows.length;) {
+          table.deleteRow(i);
+        }
+        let token = localStorage.getItem('token');
+        let url = "/list_order?limit=" + limit + "&offset=" + offset + "&token=" + token;
+        console.log(url);
+        fetch(url)
+          .then((response) => response.json())
+          .then((response) => {
+            console.log(response)
+            if (!response.success) {
+              alert(response.error);
+              return;
+            }
+            if (action == -1) {
+              if (response.offset - response.limit >= 0) {
+                let input = document.querySelector("#offset");
+                input.value = response.offset - response.limit;
+              }
+            }
+            if (action == 1) {
+              if (response.offset + response.limit <= response.total) {
+                let input = document.querySelector("#offset");
+                input.value = response.offset + response.limit;
+              }
+            }
+
+            if (response.limit < 1) {
+              btn_forward.style.display = "none";
+            }
+            row_and_col()
+          });
+
+        return false;
+      }
+
+      function check_token(){
+        if (localStorage.setItem('token', response.token)){
+          response.order_list.forEach(function (item_order) {
+              var row = table.insertRow();
+              let cell1 = row.insertCell(); // добавим ячейки
+              let cell2 = row.insertCell();
+              let cell3 = row.insertCell();
+              let cell4 = row.insertCell();
+              let cell5 = row.insertCell();
+              let cell6 = row.insertCell();
+              let cell7 = row.insertCell();
+              let cell8 = row.insertCell();
+              let cell9 = row.insertCell();
+              let cell10 = row.insertCell();
+              let cell11 = row.insertCell();
+              let cell12 = row.insertCell();
+              let cell13 = row.insertCell();
+              let cell14 = row.insertCell();
+
+              cell1.innerHTML = item_order.id_order;
+              cell2.innerHTML = item_order.address;
+              cell3.innerHTML = item_order.quantity_person;
+              cell4.innerHTML = item_order.delivery_time;
+              cell5.innerHTML = item_order.cutlery == true ? ("да") : ("нет");
+              cell6.innerHTML = item_order.payment.method_name;
+              cell7.innerHTML = item_order.number_phone;
+              cell8.innerHTML = item_order.promocode;
+              cell9.innerHTML = item_order.wishes;
+              cell10.innerHTML = item_order.price;
+              cell11.innerHTML = item_order.id_user;
+              cell12.innerHTML = item_order.order_time;
+              var list_dish = item_order.dish_list.map(function (dish) {
+                return dish.name_dish;
+              });
+              cell13.innerHTML = list_dish.join();
+              cell14.innerHTML = item_order.last_status.status_name;
+              cell14.addEventListener("click", show_select_status);
+              row.setAttribute("data-id-order", item_order.id_order)
+
+            })
+        }
+        else {
+          pass
+        }
+      }
+      
+
+      function get_list_order_forward() {
+        get_list_order(1, limit = itemPerPage)
+      }
+      function get_list_order_back() {
+        get_list_order(-1, limit = itemPerPage)
+      }
+      function search_page_number() {
+        let input = document.querySelector("#page_number");
+        let offset = (input.value - 1) * itemPerPage;
+        let inputs = document.querySelector("#offset");
+        inputs.value = offset;
+        get_list_order(0, limit = itemPerPage)
+      }
+
+      function get_list_status(select) {
+        let option = document.createElement("option");
+        option.innerHTML = "выберите статус";
+        option.value = ""
+        select.innerHTML = "";
+        select.appendChild(option);
+        fetch("/list_status")
+          .then((response) => response.json())
+          .then((response) => {
+            if (!response.success) {
+              alert(response.error);
+              return;
+            }
+            response.items.forEach((elem) => {
+              let option = document.createElement("option");
+              option.innerHTML = elem.status_name;
+              option.value = elem.id
+              select.appendChild(option);
+            })
+          })
+      }
+
+      function select_replacment_status(event) {
+        console.log('тест')
+        let token = localStorage.getItem('token');
+        let parent = event.target.closest("tr");
+        let id_order = parent.getAttribute("data-id-order");
+        const url = "/replacement_status?id_order=" + id_order + "&token=" + token;
+        console.log(url)
+        let request_body = {"id_status":event.target.value};
+        fetch(url,{
+          method: 'POST',
+          body: JSON.stringify(request_body),
+          headers: {
+            'Content-type': 'application/json; charset=UTF-8',
+          },
+        })
+          .then((response) => response.json())
+          .then((response) => {
+            if (!response.success) {
+              alert(response.error);
+              let td = event.target.closest("td");
+              event.target.remove();
+              td.addEventListener("click", show_select_status);
+              return;
+            }else{
+              let td = event.target.closest("td");
+              td.innerHTML = response.status.name_status;
+              td.addEventListener("click", show_select_status);
+            }
+          });
+      }
+
+      // Отобразим таблицу на странице
+      document.body.appendChild(table);
+      get_list_order_forward()
+
+
+    </script>
